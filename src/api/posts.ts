@@ -65,5 +65,6 @@ export const initializePostsAPI = (app: Express) => {
       .execute()
     res.send('Wurde erfolgreich gelöscht!')
   })
+   
   
 }
