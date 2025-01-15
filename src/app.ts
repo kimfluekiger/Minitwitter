@@ -1,9 +1,10 @@
 import express, { type Request, type Response } from 'express'
 import { initializeAPI } from './api'
+import cors from 'cors'
 
 const app = express()
 app.use(express.json())
-
+app.use(cors())
 const Port = 3000
 
 
