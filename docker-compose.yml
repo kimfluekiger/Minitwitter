@@ -20,6 +20,7 @@ services:
     volumes:
       - ./docker-data/postgres:/var/lib/postgresql/data
 
+
   minitwitter-1:
     image: nevce/server
     environment:
@@ -29,3 +30,10 @@ services:
     image: nevce/server
     environment:
       - DATABASE_URL=postgressql://postgres:supersecret123@postgres:5432/minitwitter
+  
+  minitwitter-frontend:
+    build: 
+      context: frontend
+      dockerfile: Dockerfile
+    environment:
+    - NUXT_PUBLIC_API_BASE_URL=http://localhost:80 
