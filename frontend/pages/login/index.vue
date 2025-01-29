@@ -51,6 +51,11 @@
 </template>
 
 <script setup lang="ts">
+import { useFetch } from 'nuxt/app'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useApi } from '~/composables/useApi'
+
 const router = useRouter()
 const { baseUrl } = useApi()
 const username = ref('')
