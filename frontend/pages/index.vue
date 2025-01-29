@@ -8,6 +8,9 @@
 </template>
 
 <script setup lang="ts">
+import { useFetch } from 'nuxt/app';
+import { useApi } from '~/composables/useApi';
+
   const { baseUrl } = useApi()
   const posts = await useFetch(`${baseUrl}/api/posts`)
 </script>
