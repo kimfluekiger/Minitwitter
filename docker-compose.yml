@@ -22,11 +22,17 @@ services:
 
 
   minitwitter-1:
+    build: 
+      context: .
+      dockerfile: Dockerfile
     image: nevce/server
     environment:
       - DATABASE_URL=postgressql://postgres:supersecret123@postgres:5432/minitwitter
 
   minitwitter-2:
+    build: 
+      context: .
+      dockerfile: Dockerfile
     image: nevce/server
     environment:
       - DATABASE_URL=postgressql://postgres:supersecret123@postgres:5432/minitwitter
