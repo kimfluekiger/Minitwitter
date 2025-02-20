@@ -43,61 +43,61 @@
   </template>
   
   <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useRuntimeConfig } from '#imports'
-
-const username = ref('')
-const password = ref('')
-const router = useRouter()
-const config = useRuntimeConfig()
-
-const errorMessage = ref('')
-const successMessage = ref('')
-
-const login = async () => {
-  try {
-    console.log('Sende Login-Request an:', `${config.public.apiBase}/api/auth/login`)
-
-    const response = await fetch(`${config.public.apiBase}/api/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ username: username.value, password: password.value }),
-    })
-
-    console.log('Server Response:', response)
-
-    if (response.ok) {
-      // Server gibt nur den Token als Text zurück
-      const token = await response.text()
-      console.log('Empfangener Token:', token)
-
-      localStorage.setItem('token', token)
-
-      successMessage.value = 'Login erfolgreich! Weiterleitung...'
-      errorMessage.value = ''
-
-      // Weiterleitung zur Hauptseite nach 1 Sekunde
-      setTimeout(() => {
-        router.push('/')
-      }, 1000)
-    } else {
-      const errorText = await response.text()
-      console.error('Login fehlgeschlagen:', errorText)
-
-      errorMessage.value = 'Login fehlgeschlagen! Bitte überprüfe deine Anmeldedaten.'
-      successMessage.value = ''
+  import { ref } from 'vue'
+  import { useRouter } from 'vue-router'
+  import { useRuntimeConfig } from '#imports'
+  
+  const username = ref('')
+  const password = ref('')
+  const router = useRouter()
+  const config = useRuntimeConfig()
+  
+  const errorMessage = ref('')
+  const successMessage = ref('')
+  
+  const login = async () => {
+    try {
+      console.log('Sende Login-Request an:', `${config.public.apiBase}/api/auth/login`)
+  
+      const response = await fetch(`${config.public.apiBase}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: username.value, password: password.value }),
+      })
+  
+      console.log('Server Response:', response)
+  
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Empfangener Token:', data.token)
+  
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('isAdmin', data.isAdmin ? 'true' : 'false') // Admin-Status speichern
+  
+        successMessage.value = 'Login erfolgreich! Weiterleitung...'
+        errorMessage.value = ''
+  
+        // Weiterleitung zur Hauptseite nach 1 Sekunde
+        setTimeout(() => {
+          router.push('/')
+        }, 1000)
+      } else {
+        const errorText = await response.text()
+        console.error('Login fehlgeschlagen:', errorText)
+  
+        errorMessage.value = 'Login fehlgeschlagen! Bitte überprüfe deine Anmeldedaten.'
+        successMessage.value = ''
+      }
+    } catch (error) {
+      console.error('Ein Fehler ist aufgetreten:', error)
+      errorMessage.value = 'Serverfehler! Bitte später erneut versuchen.'
     }
-  } catch (error) {
-    console.error('Ein Fehler ist aufgetreten:', error)
-    errorMessage.value = 'Serverfehler! Bitte später erneut versuchen.'
   }
-}
-
-// Funktion, um zur Registrierungsseite zu navigieren
-const goToRegister = () => {
-  router.push('/register')
-}
-</script>
+  
+  // Funktion, um zur Registrierungsseite zu navigieren
+  const goToRegister = () => {
+    router.push('/register')
+  }
+  </script>

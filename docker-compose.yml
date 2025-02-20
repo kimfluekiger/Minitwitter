@@ -13,28 +13,40 @@ services:
     container_name: my-postgres
     restart: always
     ports:
-     - 5432:5432
+      - 5432:5432
     environment:
-    - POSTGRES_PASSWORD=supersecret123
-    - POSTGRES_DB=minitwitter
+      - POSTGRES_PASSWORD=supersecret123
+      - POSTGRES_DB=minitwitter
     volumes:
       - ./docker-data/postgres:/var/lib/postgresql/data
+    healthcheck:  # 🟢 Healthcheck hinzufügen
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 5
+      timeout: 3s
 
   minitwitter-1:
-    build: 
-      context: .
-      dockerfile: Dockerfile
-    image: nevce/server
-    environment:
-      - DATABASE_URL=postgressql://postgres:supersecret123@postgres:5432/minitwitter
+      build: 
+        context: .
+        dockerfile: Dockerfile
+      image: nevce/server
+      depends_on:
+        postgres:
+          condition: service_healthy  # 🟢 Backend wartet auf Datenbank
+      environment:
+        - DATABASE_URL=postgresql://postgres:supersecret123@postgres:5432/minitwitter
 
   minitwitter-2:
-    build: 
-      context: .
-      dockerfile: Dockerfile
-    image: nevce/server
-    environment:
-      - DATABASE_URL=postgressql://postgres:supersecret123@postgres:5432/minitwitter
+      build: 
+        context: .
+        dockerfile: Dockerfile
+      image: nevce/server
+      depends_on:
+        postgres:
+          condition: service_healthy  # 🟢 Backend wartet auf Datenbank
+      environment:
+        - DATABASE_URL=postgresql://postgres:supersecret123@postgres:5432/minitwitter
+
   
   minitwitter-frontend:
     build: 
