@@ -4,6 +4,9 @@
       <div class="container mx-auto flex justify-between items-center">
         <div class="text-white text-lg">Minitwitter</div>
         <div class="flex items-center space-x-4">
+          <!-- Admin-Bereich nur anzeigen, wenn der Nutzer Admin ist -->
+          <NuxtLink v-if="isAdmin" to="/admin" class="text-white mr-4">Admin-Bereich</NuxtLink>
+
           <!-- Login-Button anzeigen, wenn der User NICHT eingeloggt ist -->
           <button v-if="!isLoggedIn" @click="goToLogin" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
             Login
@@ -24,18 +27,17 @@ import { ref, watchEffect, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const isLoggedIn = ref(!!localStorage.getItem('token')) // Direkt den Token setzen
+const isLoggedIn = ref(false)
+const isAdmin = ref(false)
 
-// Prüft Änderungen in localStorage und aktualisiert `isLoggedIn` automatisch
+// Prüft Änderungen in localStorage und aktualisiert `isLoggedIn` und `isAdmin` automatisch
 const updateAuthState = () => {
-  console.log("Auth state updated:", !!localStorage.getItem('token')) // Debugging
   isLoggedIn.value = !!localStorage.getItem('token')
+  isAdmin.value = localStorage.getItem('isAdmin') === 'true' // Admin-Status prüfen
 }
 
 // Beobachtet `localStorage` Änderungen für sofortige UI-Updates
-watchEffect(() => {
-  isLoggedIn.value = !!localStorage.getItem('token')
-})
+watchEffect(updateAuthState)
 
 onMounted(() => {
   updateAuthState()
@@ -51,9 +53,10 @@ const goToLogin = () => {
   router.push('/login')
 }
 
-// Logout: Token löschen + UI sofort aktualisieren
+// Logout: Token & Admin-Status löschen + UI sofort aktualisieren
 const logout = () => {
   localStorage.removeItem('token')
+  localStorage.removeItem('isAdmin')
 
   // Hier ein Event feuern, um die Änderung sofort sichtbar zu machen
   window.dispatchEvent(new Event('storage'))
