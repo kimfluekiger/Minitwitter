@@ -20,7 +20,6 @@ services:
     volumes:
       - ./docker-data/postgres:/var/lib/postgresql/data
 
-
   minitwitter-1:
     build: 
       context: .
