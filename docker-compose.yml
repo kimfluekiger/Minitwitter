@@ -63,3 +63,11 @@ services:
       - 12434:11434
     volumes:
       - ./docker-data/ollama:/root/.ollama
+
+  redis:
+    image: redis/redis-stack:latest
+    ports:
+      - 8001:8001
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      
