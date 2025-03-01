@@ -1,8 +1,9 @@
 import { type Express, type Request, type Response } from 'express'
 import { db } from '../database'
-import { postsTable } from '../db/schema'
+import { postsTable, usersTable } from '../db/schema'
 import { and, eq } from 'drizzle-orm'
 import { sentimentQueue } from '../message-broker';
+import { desc } from 'drizzle-orm';
 
 export const initializePostsAPI = (app: Express) => {
   const express = require('express')
@@ -10,14 +11,19 @@ export const initializePostsAPI = (app: Express) => {
   app.use(express.json()) //Middleware for get JSON from the req.body (Post call)
 
   app.get('/api/posts', async (req, res) => {
-    const posts = await db.select({
-      id: postsTable.id,
-      text: postsTable.text,
-      sentiment: postsTable.sentiment,  // 🟢 Sicherstellen, dass es geladen wird
-      correction: postsTable.correction, // 🟢 Sicherstellen, dass es geladen wird
-      userId: postsTable.userId,
-    }).from(postsTable);
-
+    const posts = await db
+      .select({
+        id: postsTable.id,
+        text: postsTable.text,
+        sentiment: postsTable.sentiment,
+        correction: postsTable.correction,
+        userId: postsTable.userId,
+        username: usersTable.username,
+        createdAt: postsTable.createdAt  // 🕒 Zeitstempel hinzufügen
+      })
+      .from(postsTable)
+      .leftJoin(usersTable, eq(postsTable.userId, usersTable.id))
+      .orderBy(desc(postsTable.createdAt)); // 🔄 Neueste Posts zuerst
     res.json(posts);
   });
 
@@ -30,8 +36,12 @@ export const initializePostsAPI = (app: Express) => {
   
     const { text } = req.body;
   
-    // Speichere den neuen Post in der Datenbank
-    const newPost = await db.insert(postsTable).values({ text: text, userId }).returning();
+    // Speichere den neuen Post in der Datenbank mit createdAt
+    const newPost = await db.insert(postsTable).values({ 
+      text: text, 
+      userId, 
+      createdAt: new Date() // 🕒 Setze den Zeitstempel manuell
+    }).returning();
     
     if (!newPost[0]) {
       res.status(500).send({ error: 'Post konnte nicht erstellt werden' });
