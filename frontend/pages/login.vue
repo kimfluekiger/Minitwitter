@@ -56,45 +56,48 @@
   const successMessage = ref('')
   
   const login = async () => {
-    try {
-      console.log('Sende Login-Request an:', `${config.public.apiBase}/api/auth/login`)
-  
-      const response = await fetch(`${config.public.apiBase}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username: username.value, password: password.value }),
-      })
-  
-      console.log('Server Response:', response)
-  
-      if (response.ok) {
-        const data = await response.json()
-        console.log('Empfangener Token:', data.token)
-  
-        localStorage.setItem('token', data.token)
-        localStorage.setItem('isAdmin', data.isAdmin ? 'true' : 'false') // Admin-Status speichern
-  
-        successMessage.value = 'Login erfolgreich! Weiterleitung...'
-        errorMessage.value = ''
-  
-        // Weiterleitung zur Hauptseite nach 1 Sekunde
-        setTimeout(() => {
-          router.push('/')
-        }, 1000)
-      } else {
-        const errorText = await response.text()
-        console.error('Login fehlgeschlagen:', errorText)
-  
-        errorMessage.value = 'Login fehlgeschlagen! Bitte überprüfe deine Anmeldedaten.'
-        successMessage.value = ''
-      }
-    } catch (error) {
-      console.error('Ein Fehler ist aufgetreten:', error)
-      errorMessage.value = 'Serverfehler! Bitte später erneut versuchen.'
+  try {
+    console.log('Sende Login-Request an:', `${config.public.apiBase}/api/auth/login`);
+
+    const response = await fetch(`${config.public.apiBase}/api/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username: username.value, password: password.value }),
+    });
+
+    console.log('Server Response:', response);
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Empfangener Token:', data.token);
+
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('isAdmin', data.isAdmin ? 'true' : 'false'); // Admin-Status speichern
+
+      successMessage.value = 'Login erfolgreich!';
+      errorMessage.value = '';
+
+      // **Erst zur Startseite navigieren**
+      router.push('/');
+
+      // **Dann nach 500ms ein Reload erzwingen**
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } else {
+      const errorText = await response.text();
+      console.error('Login fehlgeschlagen:', errorText);
+
+      errorMessage.value = 'Login fehlgeschlagen! Bitte überprüfe deine Anmeldedaten.';
+      successMessage.value = '';
     }
+  } catch (error) {
+    console.error('Ein Fehler ist aufgetreten:', error);
+    errorMessage.value = 'Serverfehler! Bitte später erneut versuchen.';
   }
+};
   
   // Funktion, um zur Registrierungsseite zu navigieren
   const goToRegister = () => {

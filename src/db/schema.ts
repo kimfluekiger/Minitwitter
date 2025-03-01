@@ -1,5 +1,6 @@
 import type { password } from 'bun'
 import {boolean, integer, pgTable, varchar } from 'drizzle-orm/pg-core'
+import { timestamp } from 'drizzle-orm/pg-core'
 
 export const postsTable = pgTable('posts', {
  id: integer().primaryKey().generatedAlwaysAsIdentity(),
@@ -8,7 +9,8 @@ export const postsTable = pgTable('posts', {
  correction: varchar({ length: 255 }),
  userId: integer()
     .notNull()
-    .references(()=>usersTable.id,{onDelete: 'cascade'}),
+    .references(()=>usersTable.id,{onDelete: 'cascade'}),   
+ createdAt: timestamp('created_at').defaultNow().notNull()  // 🕒 Zeitstempel hinzufügen
     
 })
 
