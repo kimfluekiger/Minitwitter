@@ -1,27 +1,78 @@
-import { Job, Queue, Worker } from 'bullmq'
-import IORedis from 'ioredis'
+import { Queue, Worker } from 'bullmq';
+import { Redis } from 'ioredis';
+import { db } from '../database'; // Sicherstellen, dass die DB-Verbindung importiert ist
+import { postsTable } from '../db/schema'; // Dein Tabellen-Schema importieren
+import { eq } from 'drizzle-orm'
 
-let sentimentQueue: Queue
-let sentimentWorker: Worker
+export { sentimentQueue };
 
-export const initializeMessageBroker = () => {
-  const connection = new IORedis({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
-    maxRetriesPerRequest: null,
-  })
+// Verbindung zu Redis herstellen
+const redisConnection = new Redis({
+  host: 'redis', // Falls Redis in Docker läuft
+  port: 6379,
+  maxRetriesPerRequest: null,
+});
 
-  sentimentQueue = new Queue('sentiment', { connection })
-  sentimentWorker = new Worker('sentiment', analyzeSentiment, { connection })
-  console.log('Message broker initialized')
+// Erstelle die Queue für Sentiment Analysis
+const sentimentQueue = new Queue('sentiment-analysis', { connection: redisConnection });
+
+// Worker, der Jobs verarbeitet
+const sentimentWorker = new Worker<{ text: string; postId: number }>(
+  'sentiment-analysis',
+  async (job) => {
+    console.log('✅ Worker hat einen Job erhalten:', job.data);
+
+    const sentiment = analyzeSentiment(job.data.text);
+    console.log(`🔍 Analysiertes Sentiment: ${sentiment}`);
+
+    const correction = sentiment === 'negative' ? generateCorrection(job.data.text) : null;
+    console.log(`✏️ Korrekturvorschlag: ${correction ? correction : 'Keine Korrektur nötig'}`);
+
+    // Post in der Datenbank aktualisieren
+    await updatePostSentiment(job.data.postId, sentiment, correction);
+    console.log(`✅ Post ${job.data.postId} aktualisiert mit Sentiment ${sentiment} und Korrektur: ${correction}`);
+  },
+  { connection: redisConnection }
+);
+
+// Dummy-Funktion zur Analyse
+function analyzeSentiment(text: string): string {
+  if (text.includes('schlecht') || text.includes('doof')) return 'negative';
+  if (text.includes('super') || text.includes('toll')) return 'positive';
+  return 'neutral';
 }
 
-const analyzeSentiment = async (job: Job) => {
-  console.log(job.data)
-  // 1. Generate job when new post is created with the post id (in api/posts.ts POST/PUT endpoint)
-  // 2. Fetch the post from the database
-  // 3. Analyze the sentiment of the post (services/ai.ts -> textAnalysis)
-  // 4. Update the post with the sentiment
+// Dummy-Funktion zur Korrektur
+function generateCorrection(text: string): string {
+  return text.replace(/schlecht|doof/g, 'nicht so ideal');
 }
 
-export { sentimentQueue }
+// Funktion zum Update des Posts in der Datenbank
+async function updatePostSentiment(postId: number, sentiment: string, correction: string | null) {
+  console.log(`📌 Aktualisiere Post ${postId} mit Sentiment: ${sentiment} und Korrektur: ${correction}`);
+
+  const updated = await db.update(postsTable)
+    .set({ sentiment, correction })
+    .where(eq(postsTable.id, postId))
+    .returning();
+
+  if (updated.length === 0) {
+    console.error(`❌ Fehler: Post ${postId} konnte nicht aktualisiert werden.`);
+  } else {
+    console.log(`✅ Post ${postId} erfolgreich aktualisiert.`);
+  }
+}
+
+export function initializeMessageBroker() {
+  console.log('Initializing Message Broker...');
+
+  // Stelle sicher, dass Redis und die Queue existieren
+  if (!sentimentQueue) {
+    throw new Error('Sentiment Queue konnte nicht initialisiert werden.');
+  }
+
+  console.log('Message Broker successfully initialized.');
+}
+
+console.log('Sentiment Worker gestartet...');
+

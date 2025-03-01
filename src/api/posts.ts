@@ -2,27 +2,50 @@ import { type Express, type Request, type Response } from 'express'
 import { db } from '../database'
 import { postsTable } from '../db/schema'
 import { and, eq } from 'drizzle-orm'
+import { sentimentQueue } from '../message-broker';
 
 export const initializePostsAPI = (app: Express) => {
   const express = require('express')
 
   app.use(express.json()) //Middleware for get JSON from the req.body (Post call)
 
-  app.get('/api/posts', async (req: Request, res: Response) => {
-    const posts = await db.select().from(postsTable)
-    res.send(posts)
-  })
+  app.get('/api/posts', async (req, res) => {
+    const posts = await db.select({
+      id: postsTable.id,
+      text: postsTable.text,
+      sentiment: postsTable.sentiment,  // 🟢 Sicherstellen, dass es geladen wird
+      correction: postsTable.correction, // 🟢 Sicherstellen, dass es geladen wird
+      userId: postsTable.userId,
+    }).from(postsTable);
 
-   app.post('/api/posts', async (req: Request, res: Response) => {
-    const userId = req.user?.id
-    if(!userId){
-      res.status(401).send({error: 'Unauthotized'})
-      return
+    res.json(posts);
+  });
+
+  app.post('/api/posts', async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).send({ error: 'Unauthorized' });
+      return;
     }
-    const { text } = req.body
-    const newPost = await db.insert(postsTable).values({text, userId}).returning()
-    res.send(newPost[0])
-  })
+  
+    const { text } = req.body;
+  
+    // Speichere den neuen Post in der Datenbank
+    const newPost = await db.insert(postsTable).values({ text: text, userId }).returning();
+    
+    if (!newPost[0]) {
+      res.status(500).send({ error: 'Post konnte nicht erstellt werden' });
+      return;
+    }
+  
+    // Füge den Post zur Sentiment-Queue hinzu
+    await sentimentQueue.add('analyze', {
+      postId: newPost[0].id,
+      text
+    });
+  
+    res.send(newPost[0]);
+  });
 
   app.put('/api/posts/:id', async (req: Request, res: Response) => {
     const id = parseInt(req.params.id)
