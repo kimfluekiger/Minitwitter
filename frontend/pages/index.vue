@@ -32,7 +32,10 @@
           <button @click="updatePost(post.id)" class="mt-2 bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded">Speichern</button>
           <button @click="cancelEdit" class="mt-2 bg-gray-500 hover:bg-gray-700 text-white font-bold py-1 px-2 rounded ml-2">Abbrechen</button>
         </div>
-        <p v-else>{{ post.text }}</p>
+        <p v-if="post.correction" class="text-red-500 font-semibold">
+         {{ post.correction }}
+         </p>
+         <p v-else>{{ post.text }}</p>
 
         <!-- Buttons nur für eigene Posts -->
         <div v-if="isLoggedIn && post.userId === loggedInUserId" class="absolute top-2 right-2 flex space-x-2">
