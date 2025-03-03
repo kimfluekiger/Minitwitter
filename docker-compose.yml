@@ -35,6 +35,9 @@ services:
           condition: service_healthy  # 🟢 Backend wartet auf Datenbank
       environment:
         - DATABASE_URL=postgresql://postgres:supersecret123@postgres:5432/minitwitter
+        - OLLAMA_HOST=http://ollama:11434
+        - REDIS_HOST=redis
+         - SERVER_ROLE=worker
 
   minitwitter-2:
       build: 
@@ -46,6 +49,9 @@ services:
           condition: service_healthy  # 🟢 Backend wartet auf Datenbank
       environment:
         - DATABASE_URL=postgresql://postgres:supersecret123@postgres:5432/minitwitter
+        - OLLAMA_HOST=http://ollama:11434
+        - REDIS_HOST=redis
+        - SERVER_ROLE=worker
 
   
   minitwitter-frontend:
@@ -70,4 +76,14 @@ services:
       - 8001:8001
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      
+
+  minitwitter-worker:
+    image: switzercheese/my-posts-api
+    build: 
+      context: .
+      dockerfile: Dockerfile  
+    environment:
+    - DATABASE_URL=postgresql://postgres:supersecret123@postgres:5432/minitwitter
+    - OLLAMA_HOST=http://ollama:11434
+    - REDIS_HOST=redis
+    - SERVER_ROLE=worker
