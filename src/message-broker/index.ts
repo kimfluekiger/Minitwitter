@@ -1,13 +1,14 @@
 import { Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
-import { db } from '../database';
-import { postsTable } from '../db/schema';
+import { db } from '../database'; // Sicherstellen, dass die DB-Verbindung importiert ist
+import { postsTable } from '../db/schema'; // Dein Tabellen-Schema importieren
 import { eq } from 'drizzle-orm'
 
 const SERVER_ROLE = process.env.SERVER_ROLE || 'all';
 
+// Verbindung zu Redis herstellen
 const redisConnection = new Redis({
-  host: 'redis',
+  host: 'redis', // Falls Redis in Docker läuft
   port: 6379,
   maxRetriesPerRequest: null,
 });
@@ -16,58 +17,39 @@ const sentimentQueue = new Queue<{ text: string; postId: number }>('sentiment-an
 
 export { sentimentQueue };
 
+// Worker, der Jobs verarbeitet
 let sentimentWorker: Worker<{ text: string; postId: number }> | undefined;
-
-async function checkContentWithOllama(text: string): Promise<{ isHateSpeech: boolean; explanation: string }> {
-  try {
-    const response = await fetch('http://localhost:11434/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'llama2',
-        prompt: `As a content moderator, analyze if the following text contains hate speech, discrimination, or harmful content. Respond with only "true" if it contains hate speech or "false" if it's acceptable, followed by a brief explanation after a semicolon.
-        Text to analyze: "${text}"`,
-        stream: false
-      })
-    });
-
-    const data = await response.json();
-    const [result, explanation] = data.response.split(';').map(s => s.trim());
-    return {
-      isHateSpeech: result.toLowerCase() === 'true',
-      explanation: explanation || 'No explanation provided'
-    };
-  } catch (error) {
-    console.error('Error calling Ollama:', error);
-    return { isHateSpeech: false, explanation: 'Error analyzing content' };
-  }
-}
-
-async function analyzeSentiment(text: string): Promise<string> {
-  const analysis = await checkContentWithOllama(text);
-  if (analysis.isHateSpeech) {
-    console.log(`🚫 Hate speech detected: ${analysis.explanation}`);
-    return 'hate_speech';
-  }
-  return 'acceptable';
-}
 
 if(SERVER_ROLE === 'all' || SERVER_ROLE === 'worker') {
   sentimentWorker = new Worker('sentiment-analysis', async (job) => {
-    console.log('✅ Worker received job:', job.data);
+    console.log('✅ Worker hat einen Job erhalten:', job.data);
 
-    const sentiment = await analyzeSentiment(job.data.text);
-    console.log(`🔍 Content analysis result: ${sentiment}`);
+    const sentiment = analyzeSentiment(job.data.text);
+    console.log(`🔍 Analysiertes Sentiment: ${sentiment}`);
 
-    const correction = sentiment === 'hate_speech' ? 
-      'This content has been flagged as inappropriate and cannot be posted.' : null;
+    const correction = sentiment === 'negative' ? generateCorrection(job.data.text) : null;
+    console.log(`✏️ Korrekturvorschlag: ${correction ? correction : 'Keine Korrektur nötig'}`);
 
+    // Post in der Datenbank aktualisieren
     await updatePostSentiment(job.data.postId, sentiment, correction);
-    console.log(`✅ Post ${job.data.postId} updated with analysis result: ${sentiment}`);
+    console.log(`✅ Post ${job.data.postId} aktualisiert mit Sentiment ${sentiment} und Korrektur: ${correction}`);
   }, { connection: redisConnection });
-  console.log(`Content moderation worker initialized`);
+  console.log(`Sentiment worker initialized`);
 }
 
+// Dummy-Funktion zur Analyse
+function analyzeSentiment(text: string): string {
+  if (text.includes('schlecht') || text.includes('doof')) return 'negative';
+  if (text.includes('super') || text.includes('toll')) return 'positive';
+  return 'neutral';
+}
+
+// Dummy-Funktion zur Korrektur
+function generateCorrection(text: string): string {
+  return text.replace(/schlecht|doof/g, 'nicht so ideal');
+}
+
+// Funktion zum Update des Posts in der Datenbank
 async function updatePostSentiment(postId: number, sentiment: string, correction: string | null) {
   console.log(`📌 Aktualisiere Post ${postId} mit Sentiment: ${sentiment} und Korrektur: ${correction}`);
 
@@ -86,6 +68,7 @@ async function updatePostSentiment(postId: number, sentiment: string, correction
 export function initializeMessageBroker() {
   console.log('Initializing Message Broker...');
 
+  // Stelle sicher, dass Redis und die Queue existieren
   if (!sentimentQueue) {
     throw new Error('Sentiment Queue konnte nicht initialisiert werden.');
   }
