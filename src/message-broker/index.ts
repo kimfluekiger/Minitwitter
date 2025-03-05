@@ -7,8 +7,6 @@ import { Ollama } from 'ollama';
 import { textAnalysis } from '../services/ai';
 
 
-const SERVER_ROLE = process.env.SERVER_ROLE || 'all';
-
 const OLLAMA_HOST = process.env.OLLAMA_HOST || 'http://ollama:11434';
 const ollama = new Ollama({ host: OLLAMA_HOST });
 
@@ -19,31 +17,39 @@ const redisConnection = new Redis({
   maxRetriesPerRequest: null,
 });
 
+const SERVER_ROLE = process.env.SERVER_ROLE || 'all'; // Standardwert ist 'all'
+
+// Sentiment-Queue immer initialisieren
 const sentimentQueue = new Queue<{ text: string; postId: number }>('sentiment-analysis', { connection: redisConnection });
+console.log('✅ Sentiment Queue initialized');
 
 export { sentimentQueue };
 
-// Worker, der Jobs verarbeitet
-// Worker, der Jobs verarbeitet
-const sentimentWorker = new Worker<{ text: string; postId: number }>(
-  'sentiment-analysis',
-  async (job) => {
-    console.log('✅ Worker hat einen Job erhalten:', job.data);
+if (SERVER_ROLE === 'all' || SERVER_ROLE === 'worker') {
+  console.log('🛠️ Server ist ein Worker, starte Sentiment-Worker...');
 
-    // 💡 Nutze AI, um das Sentiment zu bestimmen
-    const aiResult = await textAnalysis(job.data.text);
-    console.log(`🔍 AI-Analyse: Sentiment=${aiResult.sentiment}, Correction=${aiResult.correction}`);
+  const sentimentWorker = new Worker<{ text: string; postId: number }>(
+    'sentiment-analysis',
+    async (job) => {
+      console.log('✅ Worker hat einen Job erhalten:', job.data);
 
-    // Falls die AI "dangerous" als Ergebnis gibt, setzen wir es als negative Sentiment
-    const sentiment = aiResult.sentiment === 'dangerous' ? 'negative' : 'neutral';
-    const correction = aiResult.correction || null;
+      // 💡 Nutze AI, um das Sentiment zu bestimmen
+      const aiResult = await textAnalysis(job.data.text);
+      console.log(`🔍 AI-Analyse: Sentiment=${aiResult.sentiment}, Correction=${aiResult.correction}`);
 
-    // Post in der Datenbank aktualisieren
-    await updatePostSentiment(job.data.postId, sentiment, correction);
-    console.log(`✅ Post ${job.data.postId} aktualisiert mit Sentiment ${sentiment} und Korrektur: ${correction}`);
-  },
-  { connection: redisConnection }
-);
+      // Falls die AI "dangerous" als Ergebnis gibt, setzen wir es als negative Sentiment
+      const sentiment = aiResult.sentiment === 'dangerous' ? 'negative' : 'neutral';
+      const correction = aiResult.correction || null;
+
+      // Post in der Datenbank aktualisieren
+      await updatePostSentiment(job.data.postId, sentiment, correction);
+      console.log(`✅ Post ${job.data.postId} aktualisiert mit Sentiment ${sentiment} und Korrektur: ${correction}`);
+    },
+    { connection: redisConnection }
+  );
+
+  console.log('✅ Sentiment Worker initialized');
+}
 
 // Sentiment-Analyse mit Ollama
 async function analyzeSentiment(text: string): Promise<string> {
@@ -122,9 +128,4 @@ export function initializeMessageBroker() {
   }
 
   console.log('Message Broker successfully initialized.');
-}
-
-console.log('Sentiment Worker gestartet...', sentimentWorker);
-if (sentimentWorker) {
-  console.log('Sentiment Worker gestartet...', sentimentWorker);
 }
