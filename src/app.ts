@@ -2,6 +2,7 @@ import express, { type Request, type Response } from 'express'
 import { initializeAPI } from './api'
 import cors from 'cors'
 import { initializeMessageBroker } from './message-broker'
+import { initializeCache } from './services/cache'
 
 const SERVER_ROLE = process.env.SERVER_ROLE || 'all'
 const allowedServerRoles = ['all', 'api', 'worker']
@@ -12,6 +13,9 @@ if (!allowedServerRoles.includes(SERVER_ROLE)) {
 
 // For the worker server & apii queue
 initializeMessageBroker()
+
+// Fot the Cache
+initializeCache()
 
 
 // For the API server
