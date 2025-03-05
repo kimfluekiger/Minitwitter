@@ -69,6 +69,7 @@ services:
       - 12434:11434
     volumes:
       - ./docker-data/ollama:/root/.ollama
+   
 
   redis:
     image: redis/redis-stack:latest

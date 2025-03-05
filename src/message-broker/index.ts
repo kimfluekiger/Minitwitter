@@ -3,8 +3,14 @@ import { Redis } from 'ioredis';
 import { db } from '../database'; // Sicherstellen, dass die DB-Verbindung importiert ist
 import { postsTable } from '../db/schema'; // Dein Tabellen-Schema importieren
 import { eq } from 'drizzle-orm'
+import { Ollama } from 'ollama';
+import { textAnalysis } from '../services/ai';
+
 
 const SERVER_ROLE = process.env.SERVER_ROLE || 'all';
+
+const OLLAMA_HOST = process.env.OLLAMA_HOST || 'http://ollama:11434';
+const ollama = new Ollama({ host: OLLAMA_HOST });
 
 // Verbindung zu Redis herstellen
 const redisConnection = new Redis({
@@ -18,35 +24,77 @@ const sentimentQueue = new Queue<{ text: string; postId: number }>('sentiment-an
 export { sentimentQueue };
 
 // Worker, der Jobs verarbeitet
-let sentimentWorker: Worker<{ text: string; postId: number }> | undefined;
-
-if(SERVER_ROLE === 'all' || SERVER_ROLE === 'worker') {
-  sentimentWorker = new Worker('sentiment-analysis', async (job) => {
+// Worker, der Jobs verarbeitet
+const sentimentWorker = new Worker<{ text: string; postId: number }>(
+  'sentiment-analysis',
+  async (job) => {
     console.log('✅ Worker hat einen Job erhalten:', job.data);
 
-    const sentiment = analyzeSentiment(job.data.text);
-    console.log(`🔍 Analysiertes Sentiment: ${sentiment}`);
+    // 💡 Nutze AI, um das Sentiment zu bestimmen
+    const aiResult = await textAnalysis(job.data.text);
+    console.log(`🔍 AI-Analyse: Sentiment=${aiResult.sentiment}, Correction=${aiResult.correction}`);
 
-    const correction = sentiment === 'negative' ? generateCorrection(job.data.text) : null;
-    console.log(`✏️ Korrekturvorschlag: ${correction ? correction : 'Keine Korrektur nötig'}`);
+    // Falls die AI "dangerous" als Ergebnis gibt, setzen wir es als negative Sentiment
+    const sentiment = aiResult.sentiment === 'dangerous' ? 'negative' : 'neutral';
+    const correction = aiResult.correction || null;
 
     // Post in der Datenbank aktualisieren
     await updatePostSentiment(job.data.postId, sentiment, correction);
     console.log(`✅ Post ${job.data.postId} aktualisiert mit Sentiment ${sentiment} und Korrektur: ${correction}`);
-  }, { connection: redisConnection });
-  console.log(`Sentiment worker initialized`);
+  },
+  { connection: redisConnection }
+);
+
+// Sentiment-Analyse mit Ollama
+async function analyzeSentiment(text: string): Promise<string> {
+  console.log('🔍 Sentiment-Analyse mit Ollama für:', text);
+
+  try {
+    const response = await ollama.chat({
+      model: 'llama3.2:1b', 
+      messages: [{ role: 'user', content: `Analyze the sentiment of this text. Respond only with "positive", "negative", or "neutral": ${text}` }]
+    });
+
+    // Überprüfen, ob eine Antwort existiert
+    if (!response || !response.message || !response.message.content) {
+      console.warn('⚠️ Keine gültige Antwort von Ollama erhalten.');
+      return 'neutral';
+    }
+
+    const sentiment = response.message.content.trim().toLowerCase();
+    if (['positive', 'negative', 'neutral'].includes(sentiment)) {
+      console.log(`✅ Ollama Sentiment-Ergebnis: ${sentiment}`);
+      return sentiment;
+    } else {
+      console.warn('⚠️ Unerwartetes Sentiment-Ergebnis:', sentiment);
+      return 'neutral';
+    }
+  } catch (error) {
+    console.error('❌ Fehler bei der Sentiment-Analyse:', error);
+    return 'neutral';
+  }
 }
 
-// Dummy-Funktion zur Analyse
-function analyzeSentiment(text: string): string {
-  if (text.includes('schlecht') || text.includes('doof')) return 'negative';
-  if (text.includes('super') || text.includes('toll')) return 'positive';
-  return 'neutral';
-}
+// Funktion zur Korrektur
+async function generateCorrection(text: string): Promise<string> {
+  console.log('✏️ Starte Korrektur mit Ollama für:', text);
 
-// Dummy-Funktion zur Korrektur
-function generateCorrection(text: string): string {
-  return text.replace(/schlecht|doof/g, 'nicht so ideal');
+  try {
+    const response = await ollama.chat({
+      model: 'llama3.2:1b', // Falls du ein anderes Modell bevorzugst, hier ändern
+      messages: [{ 
+        role: 'user', 
+        content: `Please correct the following text to be more neutral and appropriate: ${text}`
+      }]
+    });
+
+    const correctedText = response.message.content.trim();
+    console.log(`✅ Korrigierter Text: ${correctedText}`);
+    return correctedText;
+  } catch (error) {
+    console.error('❌ Fehler bei der Korrektur mit Ollama:', error);
+    return text; // Falls ein Fehler auftritt, geben wir den Originaltext zurück
+  }
 }
 
 // Funktion zum Update des Posts in der Datenbank

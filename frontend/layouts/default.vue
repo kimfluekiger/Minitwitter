@@ -62,5 +62,10 @@ const logout = () => {
   window.dispatchEvent(new Event('storage'))
 
   updateAuthState()  // Direkt den Status aktualisieren
+
+  setTimeout(() => {
+        window.location.reload();
+      }, 500);
+      
 }
 </script>
