@@ -22,24 +22,36 @@ export const initializeCache = async () => {
 type Posts = Awaited<ReturnType<typeof getPostsFromDB>>
 
 export const getPosts = async (userId?: number) => {
-  // 1. Check if Cache is active
-  // 2. If cache active: Get posts from cache
-  // 2.1 If posts are in cache, return them
-  // 2.2 If posts are not in cache, get them from database
-  // 2.3 Store posts in cache
-  // 3. If posts are not in cache, get them directly from database
-  // 4. Filter posts by userId and sentiment dangerous
-  // 5. Return posts
+  if (!CACHE_ACTIVE) {
+    
+    return getPostsFromDB(userId)
+  }
+
+  const cachedPosts = await getPostsFromCache()
+  if (cachedPosts) {
+    console.log(cachedPosts)
+    return filterPosts(cachedPosts, userId)
+  }
+
+  const posts = await getPostsFromDB(userId)
+  await setPostsInCache(posts)
+  return filterPosts(posts, userId)
+}
+
+const filterPosts = (posts: Posts, userId?: number) => {
+  return posts.filter(post => !userId || post.posts.userId === userId)
 }
 
 const getPostsFromCache = async (): Promise<Posts | null> => {
-  // Get all posts from the redis cache
-  const posts = await redis.get('posts')
+  const cachedPosts = await redis.get('posts')
+  return cachedPosts ? JSON.parse(cachedPosts) : null
 }
 
-const getPostsFromDB = async () => {
-  // Get all posts from the database
+const getPostsFromDB = async (userId?: number) => {
+  const posts = await db.select().from(postsTable).leftJoin(usersTable, eq(postsTable.userId, usersTable.id)).orderBy(desc(postsTable.createdAt))
+  return posts
 }
+
 const setPostsInCache = async (posts: Posts) => {
   // Set the posts key with value in redis cache
   await redis.set('posts', JSON.stringify(posts))
