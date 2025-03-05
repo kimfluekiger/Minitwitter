@@ -4,7 +4,7 @@ import { db } from '../database'; // Sicherstellen, dass die DB-Verbindung impor
 import { postsTable } from '../db/schema'; // Dein Tabellen-Schema importieren
 import { eq } from 'drizzle-orm'
 
-export { sentimentQueue };
+const SERVER_ROLE = process.env.SERVER_ROLE || 'all';
 
 // Verbindung zu Redis herstellen
 const redisConnection = new Redis({
@@ -13,13 +13,15 @@ const redisConnection = new Redis({
   maxRetriesPerRequest: null,
 });
 
-// Erstelle die Queue für Sentiment Analysis
-const sentimentQueue = new Queue('sentiment-analysis', { connection: redisConnection });
+const sentimentQueue = new Queue<{ text: string; postId: number }>('sentiment-analysis', { connection: redisConnection });
+
+export { sentimentQueue };
 
 // Worker, der Jobs verarbeitet
-const sentimentWorker = new Worker<{ text: string; postId: number }>(
-  'sentiment-analysis',
-  async (job) => {
+let sentimentWorker: Worker<{ text: string; postId: number }> | undefined;
+
+if(SERVER_ROLE === 'all' || SERVER_ROLE === 'worker') {
+  sentimentWorker = new Worker('sentiment-analysis', async (job) => {
     console.log('✅ Worker hat einen Job erhalten:', job.data);
 
     const sentiment = analyzeSentiment(job.data.text);
@@ -31,9 +33,9 @@ const sentimentWorker = new Worker<{ text: string; postId: number }>(
     // Post in der Datenbank aktualisieren
     await updatePostSentiment(job.data.postId, sentiment, correction);
     console.log(`✅ Post ${job.data.postId} aktualisiert mit Sentiment ${sentiment} und Korrektur: ${correction}`);
-  },
-  { connection: redisConnection }
-);
+  }, { connection: redisConnection });
+  console.log(`Sentiment worker initialized`);
+}
 
 // Dummy-Funktion zur Analyse
 function analyzeSentiment(text: string): string {
@@ -74,5 +76,7 @@ export function initializeMessageBroker() {
   console.log('Message Broker successfully initialized.');
 }
 
-console.log('Sentiment Worker gestartet...');
-
+console.log('Sentiment Worker gestartet...', sentimentWorker);
+if (sentimentWorker) {
+  console.log('Sentiment Worker gestartet...', sentimentWorker);
+}
