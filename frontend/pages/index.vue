@@ -91,7 +91,16 @@ import { useRuntimeConfig } from '#imports'
 
 const config = useRuntimeConfig()
 
-const posts = ref([])
+interface Post {
+  id: number;
+  userId: number;
+  username: string;
+  text: string;
+  createdAt: string;
+  correction?: string;
+}
+
+const posts = ref<Post[]>([])
 const newPostText = ref('')
 const errorMessage = ref('')
 const successMessage = ref('')
@@ -139,9 +148,9 @@ const sortedPosts = computed(() => {
 });
 
 // **Formatierte Zeitangabe**
-const formatDate = (dateString) => {
-  const date = new Date(dateString);
-  return date.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString)
+  return date.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
 // **Post erstellen**
@@ -201,7 +210,7 @@ const deletePost = async (postId: number) => {
 };
 
 // **Bearbeiten eines Posts starten**
-const startEdit = (post: any) => {
+const startEdit = (post: Post) => {
   editingPostId.value = post.id;
   editedText.value = post.text;
 };
