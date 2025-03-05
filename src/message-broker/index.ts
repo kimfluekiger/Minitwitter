@@ -13,11 +13,13 @@ const OLLAMA_HOST = process.env.OLLAMA_HOST || 'http://ollama:11434';
 const ollama = new Ollama({ host: OLLAMA_HOST });
 
 // Verbindung zu Redis herstellen
+
 const redisConnection = new Redis({
   host: 'redis', // Falls Redis in Docker läuft
   port: 6379,
   maxRetriesPerRequest: null,
 });
+
 
 const sentimentQueue = new Queue<{ text: string; postId: number }>('sentiment-analysis', { connection: redisConnection });
 
