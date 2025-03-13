@@ -26,6 +26,7 @@
     "jsonwebtoken": "^9.0.2",
     "ollama": "^0.5.14",
     "pg": "^8.13.1",
+    "redis": "^4.7.0",
     "zod": "^3.24.2",
     "zod-to-json-schema": "^3.24.3"
   }

@@ -1,4 +1,5 @@
 import { Queue, Worker } from 'bullmq';
+import { config } from 'dotenv';
 import { Redis } from 'ioredis';
 import { db } from '../database'; // Sicherstellen, dass die DB-Verbindung importiert ist
 import { postsTable } from '../db/schema'; // Dein Tabellen-Schema importieren
@@ -6,7 +7,8 @@ import { eq } from 'drizzle-orm'
 import { Ollama } from 'ollama';
 import { textAnalysis } from '../services/ai';
 
-
+config();
+const SERVER_ROLE = process.env.SERVER_ROLE || 'all';
 const OLLAMA_HOST = process.env.OLLAMA_HOST || 'http://ollama:11434';
 const ollama = new Ollama({ host: OLLAMA_HOST });
 
@@ -18,13 +20,6 @@ const redisConnection = new Redis({
   maxRetriesPerRequest: null,
 });
 
-<<<<<<< HEAD
-
-=======
-const SERVER_ROLE = process.env.SERVER_ROLE || 'all'; // Standardwert ist 'all'
-
-// Sentiment-Queue immer initialisieren
->>>>>>> 6c7215b9cb1dbca2280dbfb906213aacba21aa2f
 const sentimentQueue = new Queue<{ text: string; postId: number }>('sentiment-analysis', { connection: redisConnection });
 console.log('✅ Sentiment Queue initialized');
 

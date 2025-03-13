@@ -5,7 +5,7 @@ import IORedis from 'ioredis'
 
 const CACHE_ACTIVE = (process.env.CACHE_ACTIVE || 'true') === 'true'
 
-let redis: IORedis
+export let redis: IORedis
 
 // Add initialization in app.ts
 export const initializeCache = async () => {
