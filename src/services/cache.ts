@@ -54,7 +54,7 @@ const getPostsFromDB = async (userId?: number) => {
 
 const setPostsInCache = async (posts: Posts) => {
   // Set the posts key with value in redis cache
-  await redis.set('posts', JSON.stringify(posts))
+  await redis.set('posts', JSON.stringify(posts), 'EX', 60) // EX is the expiration time in seconds
 }
 
 export const invalidatePostsCache = async () => {
