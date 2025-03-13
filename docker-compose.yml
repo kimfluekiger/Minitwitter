@@ -38,6 +38,7 @@ services:
         - OLLAMA_HOST=http://ollama:11434
         - REDIS_HOST=redis
         - SERVER_ROLE=api
+        - CACHE_ACTIVE=true # 🟢 Cache aktivieren / Zum deaktivieren true ändern
 
   minitwitter-2:
       build: 
@@ -52,6 +53,7 @@ services:
         - OLLAMA_HOST=http://ollama:11434
         - REDIS_HOST=redis
         - SERVER_ROLE=api
+        - CACHE_ACTIVE=true # 🟢 Cache aktivieren / Zum deaktivieren true ändern
 
   
   minitwitter-frontend:
