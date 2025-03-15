@@ -45,7 +45,7 @@
         </div>
 
         <!-- Falls eine Korrektur vorhanden ist, wird sie in Rot dargestellt -->
-        <p v-if="post.correction" class="text-red-500 font-semibold border border-red-500 p-2 rounded">
+        <p v-if="post.correction && post.sentiment !== 'neutral'" class="text-red-500 font-semibold border border-red-500 p-2 rounded">
           {{ post.correction }}
         </p>
         <p v-else class="border border-gray-200 p-2 rounded">{{ post.text }}</p>
@@ -115,7 +115,13 @@ const fetchPosts = async () => {
   try {
     const response = await fetch(`${config.public.apiBase}/api/posts`);
     if (response.ok) {
-      posts.value = await response.json();
+      const responseData = await response.json();
+
+      // Posts mit den zugehörigen Nutzern verknüpfen
+      posts.value = responseData.map((item: { posts: Post; users: { id: number; username: string } }) => ({
+        ...item.posts,
+        username: item.users?.username || "Unbekannter Nutzer"
+      }));
     } else {
       console.error("Fehler beim Laden der Posts");
     }
@@ -149,8 +155,14 @@ const sortedPosts = computed(() => {
 
 // **Formatierte Zeitangabe**
 const formatDate = (dateString: string) => {
-  const date = new Date(dateString)
-  return date.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  if (!dateString) return "Ungültiges Datum"; // Falls `createdAt` fehlt
+  const date = new Date(dateString);
+  return isNaN(date.getTime()) 
+    ? "Ungültiges Datum" 
+    : date.toLocaleString('de-DE', { 
+        day: '2-digit', month: '2-digit', year: 'numeric', 
+        hour: '2-digit', minute: '2-digit' 
+      });
 }
 
 // **Post erstellen**
