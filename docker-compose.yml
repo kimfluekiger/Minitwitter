@@ -39,7 +39,10 @@ services:
         - REDIS_HOST=redis
         - SERVER_ROLE=api
         - CACHE_ACTIVE=true # 🟢 Cache aktivieren / Zum deaktivieren true ändern
+<<<<<<< HEAD
       entrypoint: ["/app/entrypoint.sh"]
+=======
+>>>>>>> ee5119c090bfebbfd8b9a55eaa42d75fda5e646e
 
   minitwitter-2:
       build: 
@@ -55,7 +58,11 @@ services:
         - REDIS_HOST=redis
         - SERVER_ROLE=api
         - CACHE_ACTIVE=true # 🟢 Cache aktivieren / Zum deaktivieren true ändern
+<<<<<<< HEAD
       entrypoint: ["/app/entrypoint.sh"]
+=======
+
+>>>>>>> ee5119c090bfebbfd8b9a55eaa42d75fda5e646e
   
   minitwitter-frontend:
     build: 
@@ -64,6 +71,11 @@ services:
     environment:
     - NUXT_PUBLIC_API_BASE_URL=http://localhost:80 
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> ee5119c090bfebbfd8b9a55eaa42d75fda5e646e
   ollama:
     image: ollama/ollama
     container_name: ollama
