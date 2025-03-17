@@ -10,5 +10,9 @@ COPY . /app/
 # Install the dependencies
 RUN bun install
 
-# Start the Application
-CMD ["bun", "src/app.ts"]
+# Copy entrypoint script
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh  # Mach die Datei ausführbar
+
+# Set entrypoint script
+ENTRYPOINT ["/app/entrypoint.sh"]
