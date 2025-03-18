@@ -56,14 +56,14 @@ const fetchPosts = async () => {
     // Extrahiere alle "posts"-Objekte aus der API-Antwort
     posts.value = response.data.map(entry => entry.posts);
 
-    logger.debug("Geladene Posts:", posts.value); // Debugging-Log
+    console.log("Geladene Posts:", posts.value); // Debugging-Log
   } catch (error) {
     postError.value = 'Fehler beim Laden der Beiträge';
-    logger.error("Fehler beim Laden der Posts:", error);
+    console.error("Fehler beim Laden der Posts:", error);
   }
 };
 
-logger.debug("Geladene Posts:", posts.value);
+console.log("Geladene Posts:", posts.value);
 
 // ❌ Benutzer löschen
 const deleteUser = async (userId) => {
