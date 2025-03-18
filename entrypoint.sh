@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 echo "🚀 Running Drizzle migrations..."
 bunx drizzle-kit push
