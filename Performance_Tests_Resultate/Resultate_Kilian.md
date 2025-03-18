@@ -16,3 +16,7 @@ Mit Cache
 
 Ohne Cache
 ![alt text](./Bilder/k6_ohne_cache_kili.png)
+
+## Stress Test
+
+![alt text](./Bilder/Stress_test_kilian.png)
