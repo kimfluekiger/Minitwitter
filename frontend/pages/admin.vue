@@ -1,41 +1,131 @@
 <template>
-    <div class="container mx-auto p-4">
-      <h1 class="text-2xl font-bold mb-4">Admin Bereich</h1>
-  
-      <h2 class="text-xl font-semibold mt-4">Alle Nutzer</h2>
-      <div v-for="user in users" :key="user.id" class="p-2 border rounded mb-2">
-        {{ user.username }}
-        <button @click="deleteUser(user.id)" class="ml-2 bg-red-500 text-white px-2 py-1 rounded">Löschen</button>
-      </div>
-  
-      <h2 class="text-xl font-semibold mt-4">Alle Beiträge</h2>
-      <div v-for="post in posts" :key="post.id" class="p-2 border rounded mb-2">
-        {{ post.text }}
-        <button @click="deletePost(post.id)" class="ml-2 bg-red-500 text-white px-2 py-1 rounded">Löschen</button>
-      </div>
-    </div>
-  </template>
-  
-  <script setup>
-  import { ref, onMounted } from 'vue'
-  
-  const users = ref([])
-  const posts = ref([])
-  
-  const fetchData = async () => {
-    users.value = await (await fetch('/api/users')).json()
-    posts.value = await (await fetch('/api/posts')).json()
+  <div class="admin-container">
+    <h1 class="title">Admin Bereich</h1>
+
+    <!-- 🔹 Benutzerverwaltung -->
+    <h2 class="section-title">Alle Nutzer</h2>
+    <p v-if="userError" class="error-message">{{ userError }}</p>
+    <ul v-if="users.length">
+      <li v-for="user in users" :key="user.id" class="admin-item">
+        <span>{{ user.username }}</span>
+        <button @click="deleteUser(user.id)" class="delete-button">Löschen</button>
+      </li>
+    </ul>
+
+    <!-- 🔹 Postverwaltung -->
+    <h2 class="section-title">Alle Beiträge</h2>
+    <p v-if="postError" class="error-message">{{ postError }}</p>
+    <ul v-if="posts.length">
+      <li v-for="post in posts" :key="post.id" class="admin-item">
+        <span>{{ post.text }}</span>
+        <button @click="deletePost(post.id)" class="delete-button">Löschen</button>
+      </li>
+    </ul>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import axios from 'axios'
+
+// Reaktive Variablen
+const users = ref([])
+const posts = ref([])
+const userError = ref(null)
+const postError = ref(null)
+
+// 🚀 Benutzer abrufen
+const fetchUsers = async () => {
+  try {
+    const response = await axios.get('/api/admin/users', {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+    users.value = response.data
+  } catch (error) {
+    userError.value = 'Fehler beim Laden der Benutzer'
   }
-  
-  const deleteUser = async (id) => {
-    await fetch(`/api/users/${id}`, { method: 'DELETE' })
-    fetchData()
+}
+
+// 🚀 Beiträge abrufen
+const fetchPosts = async () => {
+  try {
+    const response = await axios.get('/api/posts', {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    });
+
+    // Extrahiere alle "posts"-Objekte aus der API-Antwort
+    posts.value = response.data.map(entry => entry.posts);
+
+    logger.debug("Geladene Posts:", posts.value); // Debugging-Log
+  } catch (error) {
+    postError.value = 'Fehler beim Laden der Beiträge';
+    logger.error("Fehler beim Laden der Posts:", error);
   }
-  
-  const deletePost = async (id) => {
-    await fetch(`/api/posts/${id}`, { method: 'DELETE' })
-    fetchData()
+};
+
+logger.debug("Geladene Posts:", posts.value);
+
+// ❌ Benutzer löschen
+const deleteUser = async (userId) => {
+  try {
+    await axios.delete(`/api/admin/users/${userId}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+    users.value = users.value.filter(user => user.id !== userId)
+  } catch (error) {
+    userError.value = 'Fehler beim Löschen des Benutzers'
   }
-  
-  onMounted(fetchData)
-  </script>
+}
+
+// ❌ Post löschen
+const deletePost = async (postId) => {
+  try {
+    await axios.delete(`/api/posts/${postId}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+    posts.value = posts.value.filter(post => post.id !== postId)
+  } catch (error) {
+    postError.value = 'Fehler beim Löschen des Beitrags'
+  }
+}
+
+// 🔄 Daten laden, wenn die Seite aufgerufen wird
+onMounted(() => {
+  fetchUsers()
+  fetchPosts()
+})
+</script>
+
+<style scoped>
+.admin-container {
+  max-width: 600px;
+  margin: auto;
+  padding: 20px;
+}
+.title {
+  text-align: center;
+  font-size: 24px;
+  font-weight: bold;
+}
+.section-title {
+  margin-top: 20px;
+  font-size: 18px;
+  font-weight: bold;
+}
+.admin-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+.delete-button {
+  background-color: red;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.error-message {
+  color: red;
+}
+</style>

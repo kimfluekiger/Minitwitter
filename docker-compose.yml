@@ -68,7 +68,7 @@ services:
     image: ollama/ollama
     container_name: ollama
     ports: 
-      - 12434:11434
+      - 11434:11434
     volumes:
       - ./docker-data/ollama:/root/.ollama
    

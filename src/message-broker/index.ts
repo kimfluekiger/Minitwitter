@@ -60,7 +60,7 @@ async function analyzeSentiment(text: string): Promise<string> {
   try {
     const response = await ollama.chat({
       model: 'llama3.2:1b', 
-      messages: [{ role: 'user', content: `Analyze the sentiment of this text. Respond only with "positive", "negative", or "neutral": ${text}` }]
+      messages: [{ role: 'user', content: `Bitte analysiere die Stimmung des folgenden Textes und gib als Antwort nur eines der folgenden Wörter zurück: ‘positive’, ‘negative’ oder ‘neutral’. ${text}` }]
     });
 
     // Überprüfen, ob eine Antwort existiert
@@ -92,7 +92,7 @@ async function generateCorrection(text: string): Promise<string> {
       model: 'llama3.2:1b', // Falls du ein anderes Modell bevorzugst, hier ändern
       messages: [{ 
         role: 'user', 
-        content: `Please correct the following text to be more neutral and appropriate: ${text}`
+        content: `Bitte formuliere den folgenden Text neutraler und positiver um, sodass die ursprüngliche Aussage erhalten bleibt, aber ohne harte oder unangemessene Sprache: ${text}`
       }]
     });
 
