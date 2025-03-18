@@ -1,5 +1,6 @@
 <template>
   <div class="admin-container">
+    <button @click="$router.push('/')" class="back-button">⬅ Zurück</button>
     <h1 class="title">Admin Bereich</h1>
 
     <!-- 🔹 Benutzerverwaltung -->
@@ -127,5 +128,18 @@ onMounted(() => {
 }
 .error-message {
   color: red;
+}
+.back-button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  cursor: pointer;
+  font-size: 16px;
+  border-radius: 5px;
+  margin-bottom: 15px;
+}
+.back-button:hover {
+  background-color: #b97d29;
 }
 </style>
