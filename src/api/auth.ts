@@ -6,44 +6,44 @@ import { db } from '../database'
 import { eq } from 'drizzle-orm'
 import { logger } from '../services/logger' // Logger importieren
 
-// 🔐 JWT Secret aus der Umgebung oder Default-Wert
+// JWT Secret aus der Umgebung oder Standardwert verwenden
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecret123'
 
-// 🔧 Admin-User-Erstellung als separate Funktion
+// Funktion zur Erstellung eines Admin-Benutzers, falls noch keiner existiert
 const createAdminUser = async () => {
-    logger.debug('Checking for existing admin user...')
+    logger.debug('Prüfe, ob ein Admin-Benutzer existiert...')
     const adminUser = await db.select().from(usersTable).where(eq(usersTable.username, 'admin'))
 
     if (adminUser.length === 0) {
-        logger.info('🔧 Admin-User wird erstellt...')
-        const passwordHash = await bcrypt.hash('admin', 10)
+        logger.info('Erstelle Admin-Benutzer...')
+        const passwordHash = await bcrypt.hash('admin', 10) // Passwort hashen
         await db.insert(usersTable).values({ username: 'admin', password: passwordHash, isAdmin: true })
-        logger.info('✅ Admin-User erstellt! (Benutzername: admin, Passwort: admin)')
+        logger.info('Admin-Benutzer wurde erstellt (Benutzername: admin, Passwort: admin)')
     } else {
-        logger.info('✅ Admin-User existiert bereits.')
+        logger.info('Admin-Benutzer existiert bereits.')
     }
 }
 
-// 🌍 Authentifizierungs-API initialisieren
+// Initialisiert die Authentifizierungs-API
 export const initializeAuthAPI = async (app: Express) => {
-    logger.info('Initializing authentication API...')
-    await createAdminUser(); // Admin-User sicherstellen
+    logger.info('Starte Authentifizierungs-API...')
+    await createAdminUser() // Stellt sicher, dass ein Admin-Benutzer vorhanden ist
 
-    // 📌 Registrierung neuer User
+    // Route zur Registrierung neuer Benutzer
     app.post('/api/auth/register', async (req: Request, res: Response) => {
         try {
             const { password, username } = req.body
-            logger.debug(`User registration attempt for username: ${username}`)
+            logger.debug(`Registrierungsversuch für Benutzer: ${username}`)
 
-            // Prüfen, ob der Username bereits existiert
+            // Überprüfung, ob der Benutzername bereits existiert
             const existingUsers = await db.select().from(usersTable).where(eq(usersTable.username, username))
             if (existingUsers.length > 0) {
-                logger.warn(`Registration failed: Username ${username} is already taken`)
+                logger.warn(`Registrierung fehlgeschlagen: Benutzername ${username} bereits vergeben`)
                 return res.status(400).json({ error: 'Benutzername bereits vergeben' })
             }
 
-            // Passwort hashen und User speichern
-            logger.debug(`Hashing password for user ${username}`)
+            // Passwort hashen und Benutzer speichern
+            logger.debug(`Hashing Passwort für Benutzer ${username}`)
             const passwordHash = await bcrypt.hash(password, 10)
             const newUser = await db.insert(usersTable).values({
                 username,
@@ -51,50 +51,51 @@ export const initializeAuthAPI = async (app: Express) => {
                 isAdmin: false // Standardmäßig kein Admin
             }).returning()
 
-            logger.info(`User ${username} successfully registered`)
+            logger.info(`Benutzer ${username} erfolgreich registriert`)
             res.json({ id: newUser[0].id, username: newUser[0].username, isAdmin: newUser[0].isAdmin })
         } catch (error) {
-            logger.error('❌ Fehler bei der Registrierung:', error)
-            res.status(500).json({ error: 'Serverfehler bei der Registrierung' })
+            logger.error('Fehler bei der Registrierung:', error)
+            res.status(500).json({ error: 'Serverfehler bei der Registrierung' }) // Fehlerbehandlung
         }
     })
 
-    // 📌 Login (gibt User-ID + Admin-Status zurück)
+    // Route für den Login (gibt User-ID + Admin-Status zurück)
     app.post('/api/auth/login', async (req: Request, res: Response) => {
         try {
             const { username, password } = req.body
-            logger.debug(`🔍 Login-Versuch für: ${username}`)
+            logger.debug(`Login-Versuch für Benutzer: ${username}`)
 
+            // Benutzer anhand des Benutzernamens abrufen
             const users = await db.select().from(usersTable).where(eq(usersTable.username, username))
 
             if (users.length === 0) {
-                logger.warn(`❌ Login fehlgeschlagen: Benutzer ${username} nicht gefunden`)
+                logger.warn(`Login fehlgeschlagen: Benutzer ${username} nicht gefunden`)
                 return res.status(401).json({ error: 'Invalid username or password' })
             }
 
             const user = users[0]
-            logger.debug(`User ${username} gefunden, verifiziere Passwort...`)
+            logger.debug(`Benutzer ${username} gefunden, Passwortüberprüfung läuft...`)
             const passwordMatch = await bcrypt.compare(password, user.password)
 
             if (!passwordMatch) {
-                logger.warn(`❌ Login fehlgeschlagen: Passwort für Benutzer ${username} falsch`)
+                logger.warn(`Login fehlgeschlagen: Passwort für Benutzer ${username} ist falsch`)
                 return res.status(401).json({ error: 'Invalid username or password' })
             }
 
-            logger.info(`✅ Login erfolgreich für ${user.username} (Admin: ${user.isAdmin})`)
+            logger.info(`Login erfolgreich für ${user.username} (Admin: ${user.isAdmin})`)
 
-            // 🔥 Erzeuge einen echten JWT-Token
-            logger.debug(`Generiere JWT-Token für Benutzer ${username}`)
+            // JWT-Token erstellen
+            logger.debug(`Erstelle JWT-Token für Benutzer ${username}`)
             const token = jwt.sign(
                 { id: user.id, username: user.username, isAdmin: user.isAdmin }, 
                 JWT_SECRET, 
-                { expiresIn: '1h' }
+                { expiresIn: '1h' } // Token läuft nach 1 Stunde ab
             )
 
-            res.json({ token, isAdmin: user.isAdmin })
+            res.json({ token, isAdmin: user.isAdmin }) // Token und Admin-Status zurückgeben
         } catch (error) {
-            logger.error('❌ Fehler beim Login:', error)
-            res.status(500).json({ error: 'Serverfehler beim Login' })
+            logger.error('Fehler beim Login:', error)
+            res.status(500).json({ error: 'Serverfehler beim Login' }) // Fehlerbehandlung
         }
     })
 }

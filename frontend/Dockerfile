@@ -12,7 +12,7 @@ RUN npm run build
 # Production stage
 FROM node:22-alpine
 
-WORKDIR /app
+WORKDIR /app 
 
 COPY --from=builder /app/.output ./.output
 COPY --from=builder /app/.nuxt ./.nuxt

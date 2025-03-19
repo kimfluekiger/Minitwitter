@@ -1,26 +1,26 @@
-// import necessary modules
+// Import der notwendigen Module für den Lasttest
 import { check } from 'k6'
 import http from 'k6/http'
 
-// define configuration
+// Definition der Testkonfiguration
 export const options = {
-  // define thresholds
+  // Definition der Schwellenwerte für den Test
   thresholds: {
-    // http errors should be less than 1%
+    // Der Anteil fehlgeschlagener HTTP-Anfragen sollte unter 1 % liegen
     http_req_failed: ['rate<0.01'],
-    // 99% of requests should be below 1s
+    // 99 % der Anfragen sollten innerhalb von 1 Sekunde abgeschlossen sein
     http_req_duration: ['p(99)<1000'],
   },
 }
 
 export default function () {
-  // define URL for posts
+  // Definiert die URL für das Abrufen der Posts
   const url = 'http://localhost:80/api/posts'
 
-  // send a get request and save response
+  // Sendet eine GET-Anfrage an die definierte URL und speichert die Antwort
   const res = http.get(url)
 
-  // check that response is 200
+  // Überprüfung, ob die Antwort einen HTTP-Statuscode 200 (OK) zurückgibt
   check(res, {
     'response code was 200': (res) => res.status == 200,
   })

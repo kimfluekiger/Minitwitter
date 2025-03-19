@@ -1,23 +1,26 @@
 <template>
   <div>
+    <!-- Navigationsleiste -->
     <nav class="bg-gray-800 p-4">
       <div class="container mx-auto flex justify-between items-center">
+        <!-- Titel der Anwendung -->
         <div class="text-white text-lg">Minitwitter</div>
         <div class="flex items-center space-x-4">
-          <!-- Admin-Bereich nur anzeigen, wenn der Nutzer Admin ist -->
+          <!-- Admin-Bereich Link, nur sichtbar wenn der Nutzer Admin ist -->
           <NuxtLink v-if="isAdmin" to="/admin" class="text-white mr-4">Admin-Bereich</NuxtLink>
 
-          <!-- Login-Button anzeigen, wenn der User NICHT eingeloggt ist -->
+          <!-- Login-Button, wird angezeigt wenn der Nutzer nicht eingeloggt ist -->
           <button v-if="!isLoggedIn" @click="goToLogin" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
             Login
           </button>
-          <!-- Logout-Button anzeigen, wenn der User eingeloggt ist -->
+          <!-- Logout-Button, wird angezeigt wenn der Nutzer eingeloggt ist -->
           <button v-if="isLoggedIn" @click="logout" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
             Logout
           </button>
         </div>
       </div>
     </nav>
+    <!-- Platzhalter für dynamische Seiteninhalte -->
     <NuxtPage />
   </div>
 </template>
@@ -27,45 +30,47 @@ import { ref, watchEffect, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const isLoggedIn = ref(false)
-const isAdmin = ref(false)
+const isLoggedIn = ref(false) // Speichert den Login-Status des Nutzers
+const isAdmin = ref(false) // Speichert, ob der Nutzer Admin ist
 
-// Prüft Änderungen in localStorage und aktualisiert `isLoggedIn` und `isAdmin` automatisch
+// Funktion zur Aktualisierung des Authentifizierungsstatus
 const updateAuthState = () => {
-  isLoggedIn.value = !!localStorage.getItem('token')
-  isAdmin.value = localStorage.getItem('isAdmin') === 'true' // Admin-Status prüfen
+  isLoggedIn.value = !!localStorage.getItem('token') // Prüft, ob ein Token vorhanden ist
+  isAdmin.value = localStorage.getItem('isAdmin') === 'true' // Prüft, ob der Nutzer Admin ist
 }
 
-// Beobachtet `localStorage` Änderungen für sofortige UI-Updates
+// Beobachtet Änderungen in localStorage und aktualisiert den Status
 watchEffect(updateAuthState)
 
 onMounted(() => {
   updateAuthState()
-  window.addEventListener('storage', updateAuthState) // Falls in anderem Tab ausgeloggt wird
+  // Eventlistener für Änderungen in localStorage hinzufügen (z. B. wenn in einem anderen Tab ausgeloggt wird)
+  window.addEventListener('storage', updateAuthState)
 })
 
 onUnmounted(() => {
+  // Eventlistener wieder entfernen, um Speicherlecks zu vermeiden
   window.removeEventListener('storage', updateAuthState)
 })
 
-// Login-Seite aufrufen
+// Navigiert zur Login-Seite
 const goToLogin = () => {
   router.push('/login')
 }
 
-// Logout: Token & Admin-Status löschen + UI sofort aktualisieren
+// Logout-Funktion: Entfernt Token und Admin-Status, aktualisiert die UI und lädt die Seite neu
 const logout = () => {
   localStorage.removeItem('token')
   localStorage.removeItem('isAdmin')
 
-  // Hier ein Event feuern, um die Änderung sofort sichtbar zu machen
+  // Löst ein Storage-Event aus, damit Änderungen sofort übernommen werden
   window.dispatchEvent(new Event('storage'))
 
-  updateAuthState()  // Direkt den Status aktualisieren
+  updateAuthState() // Status direkt aktualisieren
 
+  // Verzögertes Neuladen der Seite, um UI-Probleme zu vermeiden
   setTimeout(() => {
-        window.location.reload();
-      }, 500);
-      
+    window.location.reload();
+  }, 500);
 }
 </script>

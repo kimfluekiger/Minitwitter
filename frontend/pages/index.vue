@@ -2,7 +2,7 @@
   <div class="container mx-auto p-4">
     <h1 class="text-2xl font-bold mb-4">Your Feed</h1>
 
-    <!-- Eingabe für neue Posts, nur wenn eingeloggt -->
+    <!-- Eingabefeld für neue Posts, wird nur angezeigt, wenn der Nutzer eingeloggt ist -->
     <div v-if="isLoggedIn" class="mb-6 p-4 border rounded bg-white shadow-md">
       <h2 class="text-lg font-semibold mb-2">Neuen Post erstellen</h2>
       <input v-model="newPostText" 
@@ -14,27 +14,28 @@
       </button>
     </div>
 
-    <!-- Fehlermeldungen -->
+    <!-- Fehlermeldungen bei Problemen -->
     <div v-if="errorMessage" class="bg-red-500 text-white p-2 rounded mb-4">
       {{ errorMessage }}
     </div>
 
+    <!-- Erfolgsnachricht, wenn ein Post erfolgreich erstellt oder gelöscht wurde -->
     <div v-if="successMessage" class="bg-green-500 text-white p-2 rounded mb-4">
       {{ successMessage }}
     </div>
 
-    <!-- Posts anzeigen -->
+    <!-- Anzeige der Posts, wenn vorhanden -->
     <div v-if="sortedPosts.length">
       <div v-for="post in sortedPosts" :key="post.id" class="mb-4 p-4 border-4 border-gray-300 rounded-lg bg-white shadow-md relative">
         
-        <!-- Falls als Hassrede markiert -->
+        <!-- Falls ein Post als Hassrede markiert wurde und dem aktuellen Nutzer gehört -->
         <div v-if="post.sentiment === 'negative' && post.userId === loggedInUserId">
           <p class="bg-yellow-300 text-black p-2 rounded mb-2">
             ⚠️ Dein Beitrag wurde als Hassrede markiert und ist nur für dich sichtbar.
           </p>
         </div>
 
-        <!-- Username & Zeitstempel -->
+        <!-- Benutzername und Zeitstempel des Posts -->
         <div class="flex justify-between items-center">
           <h2 class="text-lg font-bold text-blue-600">
             {{ post.username || 'Unbekannter Nutzer' }}
@@ -44,13 +45,13 @@
           </p>
         </div>
 
-        <!-- Falls eine Korrektur vorhanden ist, wird sie in Rot dargestellt -->
+        <!-- Falls eine Korrektur für den Post vorliegt, wird sie angezeigt -->
         <p v-if="post.correction && post.sentiment !== 'neutral'" class="text-red-500 font-semibold border border-red-500 p-2 rounded">
           {{ post.correction }}
         </p>
         <p v-else class="border border-gray-200 p-2 rounded">{{ post.text }}</p>
 
-        <!-- Bearbeiten-Feld -->
+        <!-- Eingabefeld zur Bearbeitung des Posts -->
         <div v-if="editingPostId === post.id">
           <input v-model="editedText" 
                  class="border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
@@ -64,7 +65,7 @@
           </button>
         </div>
 
-        <!-- Buttons nur für eigene Posts -->
+        <!-- Buttons zum Bearbeiten und Löschen eines eigenen Posts -->
         <div v-if="isLoggedIn && post.userId === loggedInUserId" 
              class="absolute top-2 right-2 flex space-x-2">
           <button @click="startEdit(post)" 
@@ -79,6 +80,7 @@
       </div>
     </div>
 
+    <!-- Falls keine Posts vorhanden sind -->
     <div v-else>
       <p>Keine Posts vorhanden...</p>
     </div>
@@ -91,6 +93,7 @@ import { useRuntimeConfig } from '#imports'
 
 const config = useRuntimeConfig()
 
+// Definition der Post-Schnittstelle
 interface Post {
   id: number;
   userId: number;
@@ -100,24 +103,25 @@ interface Post {
   correction?: string;
 }
 
+// Reaktive Variablen
 const posts = ref<Post[]>([])
 const newPostText = ref('')
 const errorMessage = ref('')
 const successMessage = ref('')
-const isLoggedIn = ref(false)
-const loggedInUserId = ref<number | null>(null) // ID des eingeloggten Nutzers
+const isLoggedIn = ref(false) // Gibt an, ob ein Nutzer eingeloggt ist
+const loggedInUserId = ref<number | null>(null) // Speichert die ID des eingeloggten Nutzers
 
 const editingPostId = ref<number | null>(null)
 const editedText = ref('')
 
-// **Posts abrufen**
+// **Abrufen der Posts**
 const fetchPosts = async () => {
   try {
     const response = await fetch(`${config.public.apiBase}/api/posts`);
     if (response.ok) {
       const responseData = await response.json();
 
-      // Posts mit den zugehörigen Nutzern verknüpfen
+      // Verknüpft die Posts mit den Nutzernamen
       posts.value = responseData.map((item: { posts: Post; users: { id: number; username: string } }) => ({
         ...item.posts,
         username: item.users?.username || "Unbekannter Nutzer"
@@ -130,32 +134,33 @@ const fetchPosts = async () => {
   }
 };
 
+// **Initialisierung beim Laden der Seite**
 onMounted(async () => {
   const token = localStorage.getItem('token');
   if (token) {
     isLoggedIn.value = true;
-    const userData = JSON.parse(atob(token.split('.')[1])); // Token-Decode für User-ID
+    const userData = JSON.parse(atob(token.split('.')[1])); // Dekodiert das Token für die User-ID
     loggedInUserId.value = userData.id;
   }
 
-  await fetchPosts(); // 🔄 Holt die aktuellen Posts direkt nach dem Laden der Seite
+  await fetchPosts(); // Ruft die aktuellen Posts ab
 });
 
-// **Stellt sicher, dass nur eigene Hassrede sichtbar ist**
+// **Filtert Posts, damit nur eigene Hassrede sichtbar ist**
 const filteredPosts = computed(() => {
   return posts.value.filter(post => 
     post.sentiment !== 'negative' || post.userId === loggedInUserId.value
   );
 });
 
-// **Sortierte Posts nach `createdAt`**
+// **Sortiert die Posts nach Erstellungsdatum**
 const sortedPosts = computed(() => {
   return [...filteredPosts.value].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 });
 
-// **Formatierte Zeitangabe**
+// **Formatiert das Datum für die Anzeige**
 const formatDate = (dateString: string) => {
-  if (!dateString) return "Ungültiges Datum"; // Falls `createdAt` fehlt
+  if (!dateString) return "Ungültiges Datum"; 
   const date = new Date(dateString);
   return isNaN(date.getTime()) 
     ? "Ungültiges Datum" 
@@ -165,7 +170,7 @@ const formatDate = (dateString: string) => {
       });
 }
 
-// **Post erstellen**
+// **Erstellt einen neuen Post**
 const createPost = async () => {
   if (!newPostText.value.trim()) {
     errorMessage.value = 'Der Post darf nicht leer sein!';
@@ -196,7 +201,7 @@ const createPost = async () => {
   }
 };
 
-// **Post löschen**
+// **Löscht einen Post nach Bestätigung**
 const deletePost = async (postId: number) => {
   if (!confirm('Willst du diesen Post wirklich löschen?')) return;
 
@@ -221,14 +226,13 @@ const deletePost = async (postId: number) => {
   }
 };
 
-// **Bearbeiten eines Posts starten**
+// **Startet den Bearbeitungsmodus für einen Post**
 const startEdit = (post: Post) => {
   editingPostId.value = post.id;
   editedText.value = post.text;
 };
 
-
-// **Post aktualisieren**
+// **Speichert Änderungen am Post**
 const updatePost = async (postId: number) => {
   if (!editedText.value.trim()) {
     errorMessage.value = 'Der Post darf nicht leer sein!';

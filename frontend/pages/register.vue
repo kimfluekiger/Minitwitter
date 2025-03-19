@@ -2,18 +2,20 @@
     <div class="flex flex-col items-center justify-center min-h-screen bg-gray-100">
       <h1 class="text-3xl font-bold mb-6">Registrieren</h1>
   
-      <!-- Fehlermeldung -->
+      <!-- Anzeige einer Fehlermeldung, falls die Registrierung fehlschlägt -->
       <div v-if="errorMessage" class="bg-red-500 text-white p-2 rounded mb-4">
         {{ errorMessage }}
       </div>
   
-      <!-- Erfolgreiche Registrierung -->
+      <!-- Anzeige einer Erfolgsmeldung, wenn die Registrierung erfolgreich war -->
       <div v-if="successMessage" class="bg-green-500 text-white p-2 rounded mb-4">
         {{ successMessage }}
       </div>
   
+      <!-- Formular zur Registrierung eines neuen Nutzers -->
       <form @submit.prevent="register" class="w-full max-w-sm">
         <div class="mb-4">
+          <!-- Eingabefeld für den Benutzernamen -->
           <label class="block text-gray-700 text-sm font-bold mb-2" for="username">
             Username
           </label>
@@ -21,6 +23,7 @@
                  id="username" type="text" placeholder="Username">
         </div>
         <div class="mb-6">
+          <!-- Eingabefeld für das Passwort -->
           <label class="block text-gray-700 text-sm font-bold mb-2" for="password">
             Passwort
           </label>
@@ -28,12 +31,14 @@
                  id="password" type="password" placeholder="Passwort">
         </div>
         <div class="flex items-center justify-between">
+          <!-- Button zur Registrierung -->
           <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="submit">
             Registrieren
           </button>
         </div>
       </form>
   
+      <!-- Link zur Login-Seite für bestehende Nutzer -->
       <div class="mt-4">
         <p class="text-gray-600">Bereits ein Konto?</p>
         <button @click="goToLogin" class="mt-2 bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
@@ -48,14 +53,16 @@
   import { useRouter } from 'vue-router'
   import { useRuntimeConfig } from '#imports'
   
+  // Reaktive Variablen für Benutzereingaben und Statusmeldungen
   const username = ref('')
   const password = ref('')
   const router = useRouter()
   const config = useRuntimeConfig()
   
-  const errorMessage = ref('')
-  const successMessage = ref('')
+  const errorMessage = ref('') // Speichert Fehlermeldungen
+  const successMessage = ref('') // Speichert Erfolgsmeldungen
   
+  // Funktion zur Registrierung eines neuen Nutzers
   const register = async () => {
     try {
       console.log('Sende Registrierungs-Request an:', `${config.public.apiBase}/api/auth/register`)
@@ -74,6 +81,7 @@
         successMessage.value = 'Registrierung erfolgreich! Weiterleitung zum Login...'
         errorMessage.value = ''
   
+        // Weiterleitung zur Login-Seite nach erfolgreicher Registrierung
         setTimeout(() => {
           router.push('/login')
         }, 1000)
@@ -90,6 +98,7 @@
     }
   }
   
+  // Funktion zur Navigation zur Login-Seite
   const goToLogin = () => {
     router.push('/login')
   }
