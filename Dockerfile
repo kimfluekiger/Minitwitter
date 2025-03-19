@@ -1,31 +1,38 @@
-# Dockerfile für den Minitwitter-Container
+# Base Image with Bun pre-installed
 
-# Basis-Image mit vorinstalliertem Bun verwenden
 FROM oven/bun:latest
  
-# Arbeitsverzeichnis für den Container setzen
+# Set the working directory
+
 WORKDIR /app
  
-# Den gesamten Quellcode in das Arbeitsverzeichnis im Container kopieren
+# Copy the Source Code
+
 COPY . /app/
  
-# Hier werden alle Abhängigkeiten mit Bun installiert
+# Install the dependencies
+
 RUN bun install
  
-# Das Entrypoint-Skript in das Arbeitsverzeichnis kopieren
+# Copy entrypoint script
+
 COPY entrypoint.sh /app/entrypoint.sh
  
-# Hier wird überprüft, ob die Datei korrekt kopiert wurde
+# Debugging: Überprüfen, ob die Datei existiert
+
 RUN ls -la /app/entrypoint.sh
  
-# Zeilenenden umwandeln, um mögliche Probleme mit Windows-Formatierung zu vermeiden
+# Setze korrekte Zeilenenden und mache die Datei ausführbar
+
 RUN dos2unix /app/entrypoint.sh || true
 
-# Das Skript ausführbar machen
 RUN chmod +x /app/entrypoint.sh
  
-# Hier wird überprüft, ob die Datei nun tatsächlich ausführbar ist
+# Debugging: Überprüfen, ob die Datei nun ausführbar ist
+
 RUN ls -la /app/entrypoint.sh
  
-# Das Entrypoint-Skript wird beim Start des Containers ausgeführt
+# Set entrypoint script
+
 ENTRYPOINT ["/app/entrypoint.sh"]
+ 
