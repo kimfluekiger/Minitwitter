@@ -15,6 +15,7 @@ Die Änderungen lassens sich anhand der Commits in Github nachverfolgen.
 - ## Start
     1. Docker compose build
     2. Docker compose up
+    3. npx drizzle kit push
 - ## Verwendung
     1. Die Webpage ist unter localhost:80 erreichbar
     2. Unter Login > Register kann ein User erstellt werden
