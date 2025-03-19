@@ -39,7 +39,6 @@ services:
         - REDIS_HOST=redis
         - SERVER_ROLE=api
         - CACHE_ACTIVE=true # 🟢 Cache aktivieren / Zum deaktivieren true ändern
-      entrypoint: ["/app/entrypoint.sh"]
 
   minitwitter-2:
       build: 
@@ -55,7 +54,7 @@ services:
         - REDIS_HOST=redis
         - SERVER_ROLE=api
         - CACHE_ACTIVE=true # 🟢 Cache aktivieren / Zum deaktivieren true ändern
-      entrypoint: ["/app/entrypoint.sh"]
+
   
   minitwitter-frontend:
     build: 
