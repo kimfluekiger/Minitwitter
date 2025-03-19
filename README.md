@@ -26,7 +26,7 @@ Die Änderungen lassens sich anhand der Commits in Github nachverfolgen.
     3. In der Admin übersicht können Benutzer oder Beiträge von allen Usern entfernt werden.
 
 # Aufbau
-Hier Bild einfügen
+![softwarearchitektur](https://github.com/user-attachments/assets/6ba84eca-1e8a-4c96-bdf4-68a946b3d185)
 
 # Minitwitter
 Dies ist eine Arbeit von:
