@@ -15,6 +15,7 @@ Mit Cache
 ![alt text](image-3.png)
 
 Ohne Cache
+
 ![alt text](image-5.png)
 
 ## Stress Test
